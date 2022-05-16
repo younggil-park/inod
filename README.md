@@ -1,0 +1,2 @@
+# inod
+inod_sensor
