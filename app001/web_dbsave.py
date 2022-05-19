@@ -34,6 +34,7 @@ def get_sensortb():
     finally:
         db.close()
         return sensordatatb
+        
 # ro 값 읽기
 def get_rotb():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -47,6 +48,7 @@ def get_rotb():
     finally:
         db.close()
         return rodatatb
+        
 # scope 값 읽기
 def get_scopetb():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -59,56 +61,57 @@ def get_scopetb():
     finally:
         db.close()
         return scopedatatb
+        
 #==============================================================================================
         
 def action_config(mode, *args):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     curs = db.cursor()
     if mode == "autorun": #무한 반복 펌프 동작 유무
-        for i in agrs[1]:
+        for i in args[1]:
             sql = 'UPDATE sensoractiveconfig SET runflage = {0} WHERE sensorid = {1}'.format(args[0],i)
             curs.execute(sql)
             db.commit()
      if mode == "runstop": #무한 반복 펌프 동작 중지
-        for i in agrs[0]:
-            sql = 'UPDATE sensoractiveconfig SET runstopflage = {0} WHERE sensorid = {1}'.format(i)
+        for i in args[0]:
+            sql = 'UPDATE sensoractiveconfig SET runstopflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "sd_read": #SD카드에서 데이터 읽기
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET sdreadflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "exhaust": #배기 펌프 동작
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET exhaustflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "intake":  #흡기 펌프 동작
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET intakeflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "pumpruntime":  #펌프 동작 시간 설정
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET runtimeflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
-            sql = 'UPDATE sensorpumpruntime SET intaketimes = {0}, fittimes = {1}, exhausttimes = {2}, checkflage = 1 WHERE sensorid = {3}'.format(agrs[1:0], agrs[1:1], agrs[1:2], i)
+            sql = 'UPDATE sensorpumpruntime SET intaketimes = {0}, fittimes = {1}, exhausttimes = {2}, checkflage = 1 WHERE sensorid = {3}'.format(args[1:0], args[1:1], args[1:2], i)
             curs.execute(sql)
             db.commit()
     if mode == "pumpreset":  #펌프 재시작
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET resetflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "roconfig":  #ro 값 변경, cal_ro_tb 테이블에는 데이터 존재
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET roflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
     if mode == "scopeconfig":  #scope 값 변경, cal_scope_tb 테이블에는 데이터 존재
-        for i in agrs[0]:
+        for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET scopeflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)
             db.commit()
@@ -129,11 +132,11 @@ def config_ro_value(sensor_ids, ro1, ro2, ro3, ro4):
     for sensor_id in range(0, len(sensor_ids)):
         i = 0
         for items in range(5, 9):
-            ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids[sensor_id],items,float(ro_value[i]),float(sample_data),float(sample_data))
+            #ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids[sensor_id],items,float(ro_value[i]),float(sample_data),float(sample_data))
             app.logger.info(' Ro Send=%s', ro_send)
             # Save RO or Calibration VALUES calibrationtb(RO 혹은 scope 선택, 센서이름(MQ135~138), RO값 또는 Calibration값)
             save_RO_Calbration(items, float(ro_value[i]))
-            ack_send = "0"
+            #ack_send = "0"
             #sendProcessFunction(sensor_ids[sensor_id], 'W', ro_send, ack_send)
             i += 1
     #모든 센서에 동작 시간 설정이 완료되면 재시작해야 설정된 값이 적용됨
@@ -155,10 +158,10 @@ def config_scope_value(sensor_ids,scop0, scop1, scop2, scop3):
                 #app.logger.info('sensor name MQ13%s Value=%s Level=%s',sensorname+5, scope_list[sensorname], level)
                 scop1 = scope_list[sensorname][level].split(',')
                 #app.logger.info('scope_level 0 length all %s, 1 %s, 2 %s, 3 %s ',scope_list[level][0],scop1[0],scop1[1],scop1[2])
-                scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids[sensor_id],sensorname+5,level,float(scop1[0]),float(scop1[1]),float(scop1[2]))
+                #scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids[sensor_id],sensorname+5,level,float(scop1[0]),float(scop1[1]),float(scop1[2]))
                 save_Scope_Calbration(sensorname, level, float(scop1[0]), float(scop1[1]), float(scop1[2]))
                 app.logger.info('scope send data %s',scope_send)
-                ack_send = "0"
+                #ack_send = "0"
                 #sendProcessFunction(sensor_ids[sensor_id], 'W', scope_send, ack_send)
     #모든 센서에 동작 시간 설정이 완료되면 재시작해야 설정된 값이 적용됨
     #config_reset(sensor_ids)

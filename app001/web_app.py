@@ -179,21 +179,7 @@ def client_ip():
 def sensor_stop():
     # Check if user is loggedin
     if 'loggedin' in session:
-        if not request.form.get('no1') and not request.form.get('no2')  and not request.form.get('no3')  and not request.form.get('no4')  and not request.form.get('no5'):
-            msg = 'Please Selected Sensor....'
-            flash(msg)
-            return render_template('home.html', msg=msg)
-        if request.form.get('no1') or request.form.get('no2')  or request.form.get('no3')  or request.form.get('no4')  or request.form.get('no5'):
-            if request.form.get('no1'):
-                select_sensor.append(int(request.form['no1']))
-            if request.form.get('no2'):
-                select_sensor.append(int(request.form['no2']))
-            if request.form.get('no3'):
-                select_sensor.append(int(request.form['no3']))
-            if request.form.get('no4'):
-                select_sensor.append(int(request.form['no4']))
-            if request.form.get('no5'):
-                select_sensor.append(int(request.form['no5']))
+        select_sensor = [0,1,2,3,4]
         msg1 = web_dbsave.action_config("runstop", select_sensor)
         msg = 'autorun stop flag set={0}'.format(msg1)
         app.logger.info(msg)
@@ -343,7 +329,7 @@ def sensor_ro_control():
             ro3  = request.form['Mq137Value']
             ro4  = request.form['Mq138Value']
             # sesor_id, ro1, ro2, ro3, ro4
-            msg1 = web_dbsave.action_config("roconfig", select_sensor,ro1, ro2, ro3, ro4)
+            msg1 = web_dbsave.config_ro_value(select_sensor,ro1, ro2, ro3, ro4)
             msg2 = web_dbsave.action_config("roconfig", select_sensor)
             msg = 'sensor ro calibration configuration completed[{0}, {1}]'.format(msg1, msg2)
             flash(msg)
