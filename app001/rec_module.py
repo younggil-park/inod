@@ -2,16 +2,16 @@ from datetime import datetime
 import datetime
 import serial
 import time
-import pymysql #MySQL ¿¬°á À§ÇÑ ¶óÀÌºê·¯¸®
+import pymysql #MySQL ì—°ê²° ìœ„í•œ ë¼ì´ë¸ŒëŸ¬ë¦¬
 
-#¼¾¼­ µ¥ÀÌÅÍ ¼ö½Å Àü¿ë ¸ğµâ
+#ì„¼ì„œ ë°ì´í„° ìˆ˜ì‹  ì „ìš© ëª¨ë“ˆ
 serialPort2 = "/dev/ttyUSB1"
 read_ser = serial.Serial(serialPort2, baudrate=19200, timeout = 1)
 read_ser.flushInput()
 
 ack_send = ""
-# ±âº» µ¥ÀÌÅÍ´Â ¸ğµÎ 10ÀÚ¸® ÀÀ´ä
-# µ¥ÀÌÅÍ´Â 97ÀÚ¸® ÀÀ´ä
+# ê¸°ë³¸ ë°ì´í„°ëŠ” ëª¨ë‘ 10ìë¦¬ ì‘ë‹µ
+# ë°ì´í„°ëŠ” 97ìë¦¬ ì‘ë‹µ
 def Serial_control():
     result2 = []
     checktime = 0
@@ -23,11 +23,11 @@ def Serial_control():
                 result2.append(result1)
                 strResult = "".join(result2)
                 
-                # ¼¾¼­¿¡¼­ÀÇ ÀÀ´ä ¼ö½Å ¸¸ Á¸Àç ÇÑ´Ù. ÀÚµ¿ ¸ğµå´Â ÀÀ´ä ¼ö½Å ¾ø´Ù.
-                # 1. SD Ä«µå ÀĞ´Â ¸í·É ÈÄ ¼­¹ö¿¡¼­ ¹ŞÀº °á°ú ¾Ë·ÁÁÖ¸é ÀÀ´ä ÄÚµå ÀúÀå ·Î±× ¾øÀ½(2), SD Ä«µå ¿¡·¯(3)
+                # ì„¼ì„œì—ì„œì˜ ì‘ë‹µ ìˆ˜ì‹  ë§Œ ì¡´ì¬ í•œë‹¤. ìë™ ëª¨ë“œëŠ” ì‘ë‹µ ìˆ˜ì‹  ì—†ë‹¤.
+                # 1. SD ì¹´ë“œ ì½ëŠ” ëª…ë ¹ í›„ ì„œë²„ì—ì„œ ë°›ì€ ê²°ê³¼ ì•Œë ¤ì£¼ë©´ ì‘ë‹µ ì½”ë“œ ì €ì¥ ë¡œê·¸ ì—†ìŒ(2), SD ì¹´ë“œ ì—ëŸ¬(3)
                 if len(strResult) == 10: 
                     strResult = strResult.split(',')                     
-                # ÀÚµ¿¸ğµå µ¥ÀÌÅÍ ¼ö½Å, SDÄ«µå µ¥ÀÌÅÍ ¼ö½Å
+                # ìë™ëª¨ë“œ ë°ì´í„° ìˆ˜ì‹ , SDì¹´ë“œ ë°ì´í„° ìˆ˜ì‹ 
                 elif len(strResult) >= 97:
                     strResult = strResult.split(',')
                     if len(strResult) == 13 and strResult[0][:3] == 'idx' and strResult[12] == 'etx' :
@@ -43,7 +43,7 @@ def Serial_control():
             continue
     SaveLog(msg)
 
-# ¼¾½Ì µ¥ÀÌÅÍ ÀúÀå
+# ì„¼ì‹± ë°ì´í„° ì €ì¥
 def SaveSensorData(revPacket):
     data_value = revPacket
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -64,7 +64,7 @@ def SaveSensorData(revPacket):
     finally:
         db.close()
 
-#ÀÀ´ä ·Î±× ÀúÀå 
+#ì‘ë‹µ ë¡œê·¸ ì €ì¥ 
 def SaveCmdResponseData(auto_send_cmd):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -75,7 +75,7 @@ def SaveCmdResponseData(auto_send_cmd):
     finally:
         db.close()
 
-#¸í·É ÀÀ´ä Ã³¸® °á°ú ÀúÀå 
+#ëª…ë ¹ ì‘ë‹µ ì²˜ë¦¬ ê²°ê³¼ ì €ì¥ 
 def UpdateCmdProcess(sensorid, cmd, flage):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -86,3 +86,6 @@ def UpdateCmdProcess(sensorid, cmd, flage):
         db.commit()
     finally:
         db.close()
+
+hite True:	
+	Serial_control()
