@@ -86,6 +86,7 @@ def UpdateCmdProcess(sensorid, cmd, flage):
         db.commit()
     finally:
         db.close()
-
-hite True:	
-	Serial_control()
+	
+if __name__ == "__main__":
+	while True:
+		Serial_control()
