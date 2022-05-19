@@ -305,35 +305,60 @@ def recived_sd_data(sensor_ids):
 def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     #명령 처리 티켓 생성
 	new_tickets = new_ticket_generator()
-    create_request_ticket(sensor_id, cmd, ack_send, new_ticket)
+    create_request_ticket(sensor_id, cmd, ack_send, new_tickets)
 	InsertcmdProcess(sensorid, cmd, new_ticket)
     # 서버에서 명령어 전송(자동 모드와 SD 카드 읽기 명령)
     write_ser.write(send_data.encode("utf-8"))
     app.logger.info('1-2.Command writting %s',send_data )
     SaveLog(send_data)
 
+'''
+CREATE TABLE `sensortickets` (
+  `num` int(11) NOT NULL,
+  `sensorid` varchar(1) NOT NULL,
+  `cmd` varchar(2) NOT NULL,
+  `ack_send` varchar(15) NOT NULL,
+  `tickets` varchar(10) NOT NULL,
+  `s_flag` varchar(1) NOT NULL,
+  `s_time` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+'''
 # 명령처리 완료 유무와 티켓 생성을 처리한다.
 def create_request_ticket(sensor_id, cmd, ack_send, new_tickets):
 	nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            str_query = "INSERT INTO  sensortickets  (SID, CMD, ACK_SEND, TICKETS, S_FLAGE, S_DATE) VALUES({0},{1},{2},{3})".format(sensorid, cmd, ack_send, new_tickets, 0, nowtime)
+            str_query = "INSERT INTO  sensortickets  (SENSORID, CMD, ACK_SEND, TICKETS, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, cmd, ack_send, new_tickets, 0, nowtime)
             curs.execute(str_query)
         db.commit()
     finally:
         db.close()
-	
+
+'''
+CREATE TABLE `cmdprocess` (
+  `num` int(11) NOT NULL,
+  `sensorid` varchar(1) NOT NULL,
+  `cmd` varchar(2) NOT NULL,
+  `tickets` varchar(10) NOT NULL,
+  `s_flag` varchar(1) NOT NULL,
+  `r_flag` varchar(1) DEFAULT NULL,
+  `f_flag` varchar(1) DEFAULT NULL,
+  `s_time` datetime NOT NULL,
+  `r_time` datetime DEFAULT NULL,
+  `f_time` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+'''	
 # 송신 서버에서 처음 송신을 하고 S_Flage를 1로 설정한다.
 # 수신 서버에서 수신 정보를 확인해서 요청 명령임을 확인하면 R_Flage를 1 로 설정한다.
 # 송신 서버에서 R_Flage 를 확인하여 응답 정보를 보내고 F_Flage 를 1로 설정하면 명령 처리가 모두 끝난것으로 판단한다.
 #       =>완료 후 sensortickets 테이블의 S_Flage를 1로 설정하여 명령 처리 종료를 하여야 한다.
-def InsertcmdProcess(sensorid, cmd. new_tickets):
+def InsertcmdProcess(sensorid, cmd, new_tickets):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            str_query = "INSERT INTO  cmdprocess  (SID, CMD, TICKETS, FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, cmd, new_tickets, 1, nowtime)
+            str_query = "INSERT INTO  cmdprocess  (SENSORID, CMD, TICKETS, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, cmd, new_tickets, 1, nowtime)
             curs.execute(str_query)
         db.commit()
     finally:
@@ -368,6 +393,24 @@ def import_pump_run(sensor_ids):
         ack_send = "0"
         sendProcessFunction(sensor_id, '-', sd_send, ack_send)
 
+# 자동모드 동작 명령        
+def send_request_data(sensorid):
+    today = datetime.datetime.now()
+    years = today.year
+    months = today.month
+    days = today.day
+    hours = today.hour
+    minutes = today.minute
+    seconds = today.second
+    
+    auto_send_cmd = 'idx{0},),{1:02d},{2:02d},{3:02d},{4:02d},{5:02d},{6:02d},etx'.format(sensor_ids[sensor_id], years, months, days, hours,minutes, seconds)
+    app.logger.info('1-1-2.autorun sensor No %s count %s cmd %s',sensor_ids[sensor_id], countcheck, auto_send_cmd)
+    ack_send = 'idx{0},1,etx'.format(sensor_ids[sensor_id])
+    
+    # 명령어 요청시 티켓을 생성하여 확인한다.
+    sendProcessFunction(sensor_ids[sensor_id], ')', auto_send_cmd, ack_send)
+    
+# flage값이 1이면 동작, 0 또는 2이면 완료
 #무한 반복 펌프 동작 유무 runflage = 1
 #무한 반복 펌프 동작 중지 runstopflage = 1
 #SD카드에서 데이터 읽기 sdreadflage = 1
@@ -377,18 +420,50 @@ def import_pump_run(sensor_ids):
 #펌프 동작 시간 설정 runtimeflage = 1
 #ro 값 변경 roflage = 1
 #scope 값 변경 scopeflage = 1
+# sensorid부터 해서 총 10개의 자료를 받는다.
 def db_check():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     curs = db.cursor()
-	sql = 'SELECT  * FROM sensoractiveconfig WHERE runflage = 1 or sdreadflage = 1 or exhaustflage = 1 or intakeflage = 1 or resetflage = 1 or runtimeflage = 1 or roflage = 1 or scopeflage = 1'
+	sql = 'SELECT  sensorid, runflage, runstopflage, sdreadflage, exhaustflage, intakeflage, resetflage, runtimeflage, roflage, scopeflage FROM sensoractiveconfig WHERE runflage = 1 or runstopflage = 1 or sdreadflage = 1 or exhaustflage = 1 or intakeflage = 1 or resetflage = 1 or runtimeflage = 1 or roflage = 1 or scopeflage = 1'
 	curs.execute(sql)
-	rec_flag = curs.fetchall()
+    rowcounts = curs.rowcount()
+    if rowcounts == 0:
+        request_flag = 0
+        return rowcounts, request_flag
+    else:
+        request_flag = curs.fetchall()
+        return rowcounts, request_flag
     db.close()
-	return rec_flag
+	
 	
 if __name__ == "__main__":
 	while True:
-		actions = db_check()
-		if actions == 1: # sensing 
-		elif actions == 2: # sd card data read
-		elif actions == 3: # 
+        # sensorid부터 해서 총 10개의 자료를 받는다.
+		rows, datas = db_check()
+        if rows == 0:
+            contiune
+        else:
+            for i in range(0,rows):
+                for actions in datas:
+                    sensorid = actions[i][0]
+                    runflage = actions[i][1]
+                    runstopflage = actions[i][2]
+                    sdreadflage = actions[i][3]
+                    exhaustflage = actions[i][4]
+                    intakeflage = actions[i][5]
+                    resetflage = actions[i][6]
+                    runtimeflage = actions[i][7]
+                    roflage = actions[i][8]
+                    scopeflage = actions[i][9]
+                    
+                    if runflage == 1: send_request_data(sensorid)
+                    elif runstopflage == 1: stop_request_sensor(sensorid)
+                    elif sdreadflage == 1: read_request_sdcard(sensorid)
+                    elif exhaustflage == 1: run_request_exhaust(sensorid)
+                    elif intakeflage == 1: run_request_intake(sensorid)
+                    elif resetflage == 1: reset_request_sensor(sensorid)
+                    elif runtimeflage == 1: runtime_setting_sensor(sensorid)
+                    elif roflage == 1: ro_setting_sensor(sensorid)
+                    else scopeflage == 1: scope_setting_sensor(sensorid)
+                time.sleep(5)
+        time.sleep(5)
