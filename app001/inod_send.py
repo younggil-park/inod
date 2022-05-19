@@ -305,7 +305,7 @@ def recived_sd_data(sensor_ids):
 def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     #명령 처리 티켓 생성
 	new_tickets = new_ticket_generator()
-    create_request_ticket(sensor_id, cmd, ack_send, new_tickets)
+    	create_request_ticket(sensor_id, cmd, ack_send, new_tickets)
 	InsertcmdProcess(sensorid, cmd, new_ticket)
     # 서버에서 명령어 전송(자동 모드와 SD 카드 읽기 명령)
     write_ser.write(send_data.encode("utf-8"))
