@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>사용자 등록</title>
+		<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+		<script src="https://kit.fontawesome.com/8f4175e4b8.js" crossorigin="anonymous"></script>
+	</head>
+	<body>
+		<div class="login">
+			<h1>사용자 등록</h1>
+			<div class="links">
+				<a href="{{ url_for('login') }}">Login</a>
+				<a href="{{ url_for('register') }}" class="active">Register</a>
+			</div>
+			<form action="{{ url_for('register') }}" method="post">
+				<label for="username"><i class="fas fa-user"></i></label>
+				<input type="text" name="username" placeholder="Username" id="username" required>
+				<label for="password"> <i class="fas fa-lock"></i></label>
+				<input type="password" name="password" placeholder="Password" id="password" required>
+				<label for="email"><i class="fas fa-user"></i></label>
+				<input type="email" name="email" placeholder="Email" id="email" required>
+				<div class="msg">{{ msg }}</div>
+				<input type="submit" value="Register my user">
+			</form>
+		</div>
+	</body>
+</html>
