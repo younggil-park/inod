@@ -36,7 +36,7 @@ def random_string_generator(size=10, chars=string.ascii_lowercase + string.digit
 
 def new_ticket_generator(instance):
     new_tickets= random_string_generator()
-	
+    
     qs_exists= check_ticket(new_tickets)
     if qs_exists >= 1:
         return new_ticket_generator(instance)
@@ -48,10 +48,10 @@ def check_ticket(tickets):
         with db.cursor() as curs:
             str_query = "SELECT tickets  FROM sensortickets  WHERE TICKETS={0} AND S_FLAGE=0".format(tickets)
             curs.execute(str_query)
-			flags = curs.rowcount
+            flags = curs.rowcount
     finally:
         db.close()
-		return flags
+        return flags
         
 # ro 값 읽기
 def get_rotb():
@@ -81,23 +81,20 @@ def get_scopetb():
         return scopedatatb
 
 # run time 값 읽기
-def get_pump_run_time(sensor_id, mode):
+def get_pump_run_time(sensor_id):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     rundatatb = []
     try:
         with db.cursor() as curs:
-            if mode == 'I':
-                sql = "SELECT injections FROM pumprunntime where nos = {}".format(sensor_id)
-            elif mode == 'P':
-                sql = "SELECT fittimes FROM pumprunntime where nos = {}".format(sensor_id)
-            elif mode == 'E':
-                sql = "SELECT exjections FROM pumprunntime where nos = {}".format(sensor_id)
+            sql = "SELECT intaketimes, fittimes, exhausttimes FROM sensorpumpruntime where sensorid = {}".format(sensor_id)
             curs.execute(sql)
             rundatatb = curs.fetchall()
     finally:
-        db.close()
         return rundatatb
-        
+        db.close()
+
+def runtime_response():
+    
 #로그 저장 
 def SaveLog(auto_send_cmd):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -126,65 +123,71 @@ def send_request_data(sensorid):
     
     # 명령어 요청시 티켓을 생성하여 확인한다.
     sendProcessFunction(sensor_ids[sensor_id], ')', auto_send_cmd, ack_send)
-	
+    
 # SD카드에 있는 데이터 전송 요청 idx1,+,etx 
 def read_request_sdcard(sensor_ids):
-	sd_send = 'idx{0},+,etx'.format(sensor_id)
-	#app.logger.info('sd send data %s',sd_send)
-	ack_send = 'idx{0},1,etx'.format(sensor_id)
-	# 명령어 요청시 티켓을 생성하여 확인한다.
-	sendProcessFunction(sensor_id, '+', sd_send, ack_send)
+    sd_send = 'idx{0},+,etx'.format(sensor_id)
+    #app.logger.info('sd send data %s',sd_send)
+    ack_send = 'idx{0},1,etx'.format(sensor_id)
+    # 명령어 요청시 티켓을 생성하여 확인한다.
+    sendProcessFunction(sensor_id, '+', sd_send, ack_send)
 
 # 서버에서 배기 요청(idx1,,,etx)-10자리
 def run_request_exhaust(sensor_ids):
-	sd_send = 'idx{0},,,etx'.format(sensor_ids)
-	#app.logger.info('export send data %s',export_send)
-	ack_send = "0"
-	sendProcessFunction(sensor_id, ',', sd_send, ack_send)
+    sd_send = 'idx{0},,,etx'.format(sensor_ids)
+    #app.logger.info('export send data %s',export_send)
+    ack_send = "0"
+    sendProcessFunction(sensor_id, ',', sd_send, ack_send)
 
 # 서버에서 흡기 요청(idx1,-,etx)-10자리
 def run_request_intake(sensor_ids):
-	sd_send = 'idx{0},-,etx'.format(sensor_ids)
-	#app.logger.info('import send data %s',import_send)
-	ack_send = "0"
-	sendProcessFunction(sensor_id, '-', sd_send, ack_send)
+    sd_send = 'idx{0},-,etx'.format(sensor_ids)
+    #app.logger.info('import send data %s',import_send)
+    ack_send = "0"
+    sendProcessFunction(sensor_id, '-', sd_send, ack_send)
 
 # Ro값 변경 요청: idx1, W(대문자),5(6|7|8),A,Ro값,,,etx)-32자리
 def reset_request_sensor(sensor_ids):
-        checktime = 0
-        ro_send = 'idx{0},R,etx'.format(sensor_ids[sensor_id])
-        ack_send = "0"
-        sendProcessFunction(sensor_ids[sensor_id], 'R', ro_send, ack_send)
-        msg = ' Reset CMD SensorID:{0}, CMD:{1}'.format(sensor_ids[sensor_id], ro_send)
-        app.logger.info('Command writting %s',msg )
-        SaveLog(msg)
-           	
+    checktime = 0
+    ro_send = 'idx{0},R,etx'.format(sensor_ids[sensor_id])
+    ack_send = "0"
+    sendProcessFunction(sensor_ids[sensor_id], 'R', ro_send, ack_send)
+    msg = ' Reset CMD SensorID:{0}, CMD:{1}'.format(sensor_ids[sensor_id], ro_send)
+    app.logger.info('Command writting %s',msg )
+    SaveLog(msg)
+            
 # 펌프 동작 시간 변경 요청: idx1, I|P|E (대문자),XXXXX,etx -16자리
 def runtime_setting_sensor(sensor_ids):
-	checktime = 0
-	runtimes1 = '{0:05d}'.format(runningtimes[0])
-	runtimes2 = '{0:05d}'.format(runningtimes[1])
-	runtimes3 = '{0:05d}'.format(runningtimes[2])
-	
-	ack_send = "0"
-	pp_set = 'idx{0},I,{1},etx'.format(sensor_ids[sensor_id], runtimes1)
-	sendProcessFunction(sensor_ids[sensor_id], 'I', pp_set, ack_send)
-	time.sleep(5)
-	
+    checkflage = True
+    #intaketimes, fittimes, exhausttimes
+    runningtimes = get_pump_run_time(sensor_ids)
+    intaketimes = '{0:05d}'.format(runningtimes[0])
+    fittimes = '{0:05d}'.format(runningtimes[1])
+    exhausttimes = '{0:05d}'.format(runningtimes[2])
+    
+    ack_send = "0"
+    intaketimes_set = 'idx{0},I,{1},etx'.format(sensor_ids, intaketimes)
+    fittimes_set = 'idx{0},P,{1},etx'.format(sensor_ids, fittimes)
+    exhausttimes_set = 'idx{0},E,{1},etx'.format(sensor_ids, exhausttimes)
+    sendProcessFunction(sensor_ids, 'I', intaketimes_set, ack_send)
+    while checkflage:
+        checkflage = runtime_response()
+    time.sleep(5)
+    
 # Ro값 변경 요청: idx1, W(대문자),5(6|7|8),A,Ro값,,,etx)-32자리
 def ro_setting_sensor(sensor_ids):
     ro_value = ro1,ro2,ro3,ro4
     i = 0
     sample_data = +00.000
 
-	for items in range(5, 9):
-		ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids[sensor_id],items,float(ro_value[i]),float(sample_data),float(sample_data))
-		app.logger.info(' Ro Send=%s', ro_send)
-		# Save RO or Calibration VALUES calibrationtb(RO 혹은 scope 선택, 센서이름(MQ135~138), RO값 또는 Calibration값)
-		save_RO_Calbration(items, float(ro_value[i]))
-		ack_send = "0"
-		sendProcessFunction(sensor_ids[sensor_id], 'W', ro_send, ack_send)
-		i += 1
+    for items in range(5, 9):
+        ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids[sensor_id],items,float(ro_value[i]),float(sample_data),float(sample_data))
+        app.logger.info(' Ro Send=%s', ro_send)
+        # Save RO or Calibration VALUES calibrationtb(RO 혹은 scope 선택, 센서이름(MQ135~138), RO값 또는 Calibration값)
+        save_RO_Calbration(items, float(ro_value[i]))
+        ack_send = "0"
+        sendProcessFunction(sensor_ids[sensor_id], 'W', ro_send, ack_send)
+        i += 1
     
 # 기울기값 변경 요청: idx1, W(대문자),5(6|7|8),0(1|2|3),X절편,Y절편,기울기,etx)-32자리
 def scope_setting_sensor(sensor_ids):
@@ -194,16 +197,16 @@ def scope_setting_sensor(sensor_ids):
     scope_level_3= scop3.split(';') #138
     scope_list = scope_level_0,scope_level_1,scope_level_2,scope_level_3
 
-	for sensorname in range(0,4):
-		for level in range(0,4):
-			#app.logger.info('sensor name MQ13%s Value=%s Level=%s',sensorname+5, scope_list[sensorname], level)
-			scop1 = scope_list[sensorname][level].split(',')
-			#app.logger.info('scope_level 0 length all %s, 1 %s, 2 %s, 3 %s ',scope_list[level][0],scop1[0],scop1[1],scop1[2])
-			scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids[sensor_id],sensorname+5,level,float(scop1[0]),float(scop1[1]),float(scop1[2]))
-			save_Scope_Calbration(sensorname, level, float(scop1[0]), float(scop1[1]), float(scop1[2]))
-			app.logger.info('scope send data %s',scope_send)
-			ack_send = "0"
-			sendProcessFunction(sensor_ids[sensor_id], 'W', scope_send, ack_send)
+    for sensorname in range(0,4):
+        for level in range(0,4):
+            #app.logger.info('sensor name MQ13%s Value=%s Level=%s',sensorname+5, scope_list[sensorname], level)
+            scop1 = scope_list[sensorname][level].split(',')
+            #app.logger.info('scope_level 0 length all %s, 1 %s, 2 %s, 3 %s ',scope_list[level][0],scop1[0],scop1[1],scop1[2])
+            scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids[sensor_id],sensorname+5,level,float(scop1[0]),float(scop1[1]),float(scop1[2]))
+            save_Scope_Calbration(sensorname, level, float(scop1[0]), float(scop1[1]), float(scop1[2]))
+            app.logger.info('scope send data %s',scope_send)
+            ack_send = "0"
+            sendProcessFunction(sensor_ids[sensor_id], 'W', scope_send, ack_send)
     
 # send_data, modes=auto(자동), sdcard(카드)
 # 서버에서 요청하면 센서에서 데이터 주고, 서버는 받았다는 결과를 전송
@@ -215,7 +218,7 @@ def scope_setting_sensor(sensor_ids):
  
 def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     #명령 처리 티켓 생성
-	new_tickets = new_ticket_generator()
+    new_tickets = new_ticket_generator()
     create_cmdprocess_and_ticket(sensor_id, cmd, new_tickets, ack_send)
     # 서버에서 명령어 전송(자동 모드와 SD 카드 읽기 명령)
     write_ser.write(send_data.encode("utf-8"))
@@ -252,14 +255,14 @@ CREATE TABLE `cmdprocess` (
 #       =>완료 후 sensortickets 테이블의 S_Flage를 1로 설정하여 명령 처리 종료를 하여야 한다.
 # 명령처리 완료 유무와 티켓 생성을 처리한다. *args = cmd, new_tickets, ack_send
 def create_cmdprocess_and_ticket(sensor_id, *args):
-	nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+    nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
             str_query = "INSERT INTO  sensortickets  (SENSORID, CMD, TICKETS, ACK_SEND, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, args[0], args[1], args[2], 0, nowtime)
             curs.execute(str_query)
         db.commit()
-		with db.cursor() as curs:
+        with db.cursor() as curs:
             str_query = "INSERT INTO  cmdprocess  (SENSORID, CMD, TICKETS, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, args[0], args[1], 1, nowtime)
             curs.execute(str_query)
         db.commit()
@@ -294,8 +297,8 @@ def SearchcmdProcess(sensorid, cmd):
 def db_check():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     curs = db.cursor()
-	sql = 'SELECT  sensorid, runflage, runstopflage, sdreadflage, exhaustflage, intakeflage, resetflage, runtimeflage, roflage, scopeflage, runcount FROM sensoractiveconfig WHERE runflage = 1 or runstopflage = 1 or sdreadflage = 1 or exhaustflage = 1 or intakeflage = 1 or resetflage = 1 or runtimeflage = 1 or roflage = 1 or scopeflage = 1'
-	curs.execute(sql)
+    sql = 'SELECT  sensorid, runflage, runstopflage, sdreadflage, exhaustflage, intakeflage, resetflage, runtimeflage, roflage, scopeflage, runcount FROM sensoractiveconfig WHERE runflage = 1 or runstopflage = 1 or sdreadflage = 1 or exhaustflage = 1 or intakeflage = 1 or resetflage = 1 or runtimeflage = 1 or roflage = 1 or scopeflage = 1'
+    curs.execute(sql)
     rowcounts = curs.rowcount()
     if rowcounts == 0:
         request_flag = 0
@@ -304,21 +307,21 @@ def db_check():
         request_flag = curs.fetchall()
         return rowcounts, request_flag
     db.close()
-	
-	
+    
+    
 if __name__ == "__main__":
-	while True:
+    while True:
         # sensorid부터 해서 총 10개의 자료를 받는다.
-		rows, datas = db_check()
+        rows, datas = db_check()
         if rows == 0:
-			time.sleep(5)
+            time.sleep(5)
             contiune
         else:
             for i in range(0,rows):
                 for actions in datas:
                     sensorid = actions[i][0]
                     runflage = actions[i][1]
-					runstopflage= actions[i][2]
+                    runstopflage= actions[i][2]
                     sdreadflage = actions[i][3]
                     exhaustflage = actions[i][4]
                     intakeflage = actions[i][5]
@@ -326,7 +329,7 @@ if __name__ == "__main__":
                     runtimeflage = actions[i][7]
                     roflage = actions[i][8]
                     scopeflage = actions[i][9]
-					runcount = actions[i][10]
+                    runcount = actions[i][10]
                     
                     if runflage == 1 and runcount >= 0 and runstopflage == 0 : send_request_data(sensorid)
                     elif sdreadflage == 1: read_request_sdcard(sensorid)
