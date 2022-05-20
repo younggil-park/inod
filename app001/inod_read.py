@@ -17,10 +17,34 @@ ack_send = ""
 # 다음으로 발행 티켓의처리를 완료했다는 결과 처리를 하고, 동작설정부분을 클리어한다.
 # 데이터 수신의 경우 반복작업에 대한 처리를 생각하여야 한다
 # 그리고 설정의 경우 반복 작업을 생각하여야 한다.
-	
+
+'''
+CREATE TABLE `sensortickets` (
+  `num` int(11) NOT NULL,
+  `sensorid` varchar(1) NOT NULL,
+  `cmd` varchar(2) NOT NULL,
+  `ack_send` varchar(15) NOT NULL,
+  `tickets` varchar(10) NOT NULL,
+  `s_flag` varchar(1) NOT NULL,
+  `s_time` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `cmdprocess` (
+  `num` int(11) NOT NULL,
+  `sensorid` varchar(1) NOT NULL,
+  `cmd` varchar(2) NOT NULL,
+  `tickets` varchar(10) NOT NULL,
+  `s_flag` varchar(1) NOT NULL,
+  `r_flag` varchar(1) DEFAULT NULL,
+  `f_flag` varchar(1) DEFAULT NULL,
+  `s_time` datetime NOT NULL,
+  `r_time` datetime DEFAULT NULL,
+  `f_time` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+'''	
 # 기본 데이터는 모두 10자리 응답
 # 데이터는 97자리 응답
-def Serial_control():
+def sensor_read_control():
     result2 = []
     checktime = 0
     strStatus = ''
@@ -31,11 +55,12 @@ def Serial_control():
                 result2.append(result1)
                 strResult = "".join(result2)
                 
-                # 센서에서의 응답 수신 만 존재 한다. 자동 모드는 응답 수신 없다.
-                # 1. SD 카드 읽는 명령 후 서버에서 받은 결과 알려주면 응답 코드 저장 로그 없음(2), SD 카드 에러(3)
+                # 처리 결과에 대한 수신은 cmdprocess 테이블과 tickets 테이블과 비교하여 결과 프래그만 세트한다. 
                 if len(strResult) == 10: 
-                    strResult = strResult.split(',')                     
-                # 자동모드 데이터 수신, SD카드 데이터 수신
+                    strResult = strResult.split(',')
+					
+                # 자동모드 데이터 수신 및 SD카드 데이터 수신에 대한 처리로 cmdprocess 테이블과 tickets 테이블과 비교하여 존재하면
+				# 데이터를 저장하고 프래그를 세트
                 elif len(strResult) >= 97:
                     strResult = strResult.split(',')
                     if len(strResult) == 13 and strResult[0][:3] == 'idx' and strResult[12] == 'etx' :
@@ -51,6 +76,29 @@ def Serial_control():
             continue
     SaveLog(msg)
 
+def cmd_ticket_compare(revPacket):
+	data_value = revPacket
+    nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
+    db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
+    try:
+        with db.cursor() as curs:
+            idVal = data_value[0]
+            if len(idVal) == 4:
+                id_value = idVal[-1]
+            else:
+                id_value = idVal[0]
+                
+            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE sensorid={0}".format(id_value)
+            curs.execute(sql)
+			rows = curs.rowcount()
+			if rows == 1:
+				sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flag = 1, A.r_time = {0}, B.s_flag = 1 , B.s_time = {1}  WHERE A.sensorid={2}".format(now(), now(), id_value)
+				curs.execute(sql)
+				db.commit()
+				
+    finally:
+        db.close()
+		
 # 센싱 데이터 저장
 def SaveSensorData(revPacket):
     data_value = revPacket
