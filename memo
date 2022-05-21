@@ -1,4 +1,4 @@
-remote set-url origin https://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@github.com/younggil-park/inod.git
+remote set-url origin https://keys@github.com/younggil-park/inod.git
 add -A
 commit -m "2022-05-20 serial:02"
 push origin main
