@@ -369,7 +369,7 @@ if __name__ == "__main__":
         rows, datas = db_check()
         if rows == 0:
             time.sleep(5)
-            contiune
+            continue
         else:
             for i in range(0,rows):
                 for actions in datas:
