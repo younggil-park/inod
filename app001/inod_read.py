@@ -73,14 +73,18 @@ def sensor_read_control():
                 # 처리 결과에 대한 수신은 cmdprocess 테이블과 tickets 테이블과 비교하여 결과 프래그만 세트한다. 
                 if len(strResult) == 10: 
                     strResult = strResult.split(',')
-                    
+                    # 입력받은 자료를 명령이 전달된것인지 확인하고 업데이트를 한다.
+                    cmd_ticket_compare_and_update(strResult)
+                    SaveCmdResponseData(strResult)
                 # 자동모드 데이터 수신 및 SD카드 데이터 수신에 대한 처리로 cmdprocess 테이블과 tickets 테이블과 비교하여 존재하면
                 # 데이터를 저장하고 프래그를 세트
                 elif len(strResult) >= 97:
                     strResult = strResult.split(',')
                     if len(strResult) == 13 and strResult[0][:3] == 'idx' and strResult[12] == 'etx' :
-                        saveDB(strResult)
-                        SaveLog(ack_send)
+                        # 입력받은 자료를 명령이 전달된것인지 확인하고 업데이트를 한다.
+                        cmd_ticket_compare_and_update(strResult)
+                        SaveSensorData(strResult)
+                        SaveCmdResponseData(strResult)
                 else:
                     continue
             else:  
@@ -91,7 +95,7 @@ def sensor_read_control():
             continue
     SaveLog(msg)
 
-def cmd_ticket_compare(revPacket):
+def cmd_ticket_compare_and_update(revPacket):
     data_value = revPacket
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -103,11 +107,11 @@ def cmd_ticket_compare(revPacket):
             else:
                 id_value = idVal[0]
                 
-            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE sensorid={0}".format(id_value)
+            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(id_value)
             curs.execute(sql)
             rows = curs.rowcount()
             if rows == 1:
-                sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flag = 1, A.r_time = {0}, B.s_flag = 1 , B.s_time = {1}  WHERE A.sensorid={2}".format(now(), now(), id_value)
+                sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flag = 1, A.r_time = {0}, B.s_flag = 1 , B.s_time = {1}  WHERE A.sensorid={2} and B.sensorid={2}".format(now(), now(), id_value)
                 curs.execute(sql)
                 db.commit()
                 
@@ -136,28 +140,16 @@ def SaveSensorData(revPacket):
         db.close()
 
 #응답 로그 저장 
-def SaveCmdResponseData(auto_send_cmd):
+def SaveCmdResponseData(send_cmd):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            curs.execute("INSERT INTO `sensorlog`  (`commands`, `InputDateTime`) VALUES (%s,%s)", (auto_send_cmd,nowtime))
-        db.commit()
-    finally:
-        db.close()
-
-#명령 응답 처리 결과 저장 
-def UpdateCmdProcess(sensorid, cmd, flage):
-    nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
-    db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
-    try:
-        with db.cursor() as curs:
-            str_query = "UPDATE  cmdprocess  SET flage={0}, r_time={1} WHERE SID={2} AND CMD={3} AND flage=0".format(flage,nowtime,sensorid,cmd)
-            curs.execute(str_query)
+            curs.execute("INSERT INTO `sensorlog`  (`commands`, `InputDateTime`) VALUES (%s,%s)", (send_cmd,nowtime))
         db.commit()
     finally:
         db.close()
     
 if __name__ == "__main__":
     while True:
-        Serial_control()
+        sensor_read_control()

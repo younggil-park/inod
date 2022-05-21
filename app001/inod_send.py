@@ -93,8 +93,20 @@ def get_pump_run_time(sensor_id):
         return rundatatb
         db.close()
 
-def runtime_response():
-    
+def runtime_response(sensorid):
+    db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
+    try:
+        with db.cursor() as curs:
+            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(sensorid)
+            curs.execute(sql)
+            rows = curs.rowcount()
+            if rows == 1:
+                return False
+            else:
+                return True
+    finally:
+        db.close()
+        
 #로그 저장 
 def SaveLog(auto_send_cmd):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
@@ -118,11 +130,11 @@ def send_request_data(sensorid):
     seconds = today.second
     
     auto_send_cmd = 'idx{0},),{1:02d},{2:02d},{3:02d},{4:02d},{5:02d},{6:02d},etx'.format(sensor_ids[sensor_id], years, months, days, hours,minutes, seconds)
-    app.logger.info('1-1-2.autorun sensor No %s count %s cmd %s',sensor_ids[sensor_id], countcheck, auto_send_cmd)
-    ack_send = 'idx{0},1,etx'.format(sensor_ids[sensor_id])
+    app.logger.info('1-1-2.autorun sensor No %s count %s cmd %s',sensor_ids, countcheck, auto_send_cmd)
+    ack_send = 'idx{0},1,etx'.format(sensor_ids)
     
     # 명령어 요청시 티켓을 생성하여 확인한다.
-    sendProcessFunction(sensor_ids[sensor_id], ')', auto_send_cmd, ack_send)
+    sendProcessFunction(sensor_ids, ')', auto_send_cmd, ack_send)
     
 # SD카드에 있는 데이터 전송 요청 idx1,+,etx 
 def read_request_sdcard(sensor_ids):
@@ -151,8 +163,8 @@ def reset_request_sensor(sensor_ids):
     checktime = 0
     ro_send = 'idx{0},R,etx'.format(sensor_ids[sensor_id])
     ack_send = "0"
-    sendProcessFunction(sensor_ids[sensor_id], 'R', ro_send, ack_send)
-    msg = ' Reset CMD SensorID:{0}, CMD:{1}'.format(sensor_ids[sensor_id], ro_send)
+    sendProcessFunction(sensor_ids, 'R', ro_send, ack_send)
+    msg = ' Reset CMD SensorID:{0}, CMD:{1}'.format(sensor_ids, ro_send)
     app.logger.info('Command writting %s',msg )
     SaveLog(msg)
             
@@ -166,47 +178,74 @@ def runtime_setting_sensor(sensor_ids):
     exhausttimes = '{0:05d}'.format(runningtimes[2])
     
     ack_send = "0"
+    check_count = 0
     intaketimes_set = 'idx{0},I,{1},etx'.format(sensor_ids, intaketimes)
     fittimes_set = 'idx{0},P,{1},etx'.format(sensor_ids, fittimes)
     exhausttimes_set = 'idx{0},E,{1},etx'.format(sensor_ids, exhausttimes)
+    
+    #흡기 시간 설정 전송
     sendProcessFunction(sensor_ids, 'I', intaketimes_set, ack_send)
     while checkflage:
-        checkflage = runtime_response()
+        checkflage = runtime_response(sensor_ids)
+        if check_count < 3:
+            time.sleep(1)
+            check_count += 1
+        else:
+            break
     time.sleep(5)
+    
+    #양생 시간 설정 전송
+    sendProcessFunction(sensor_ids, 'P', fittimes_set, ack_send)
+    while checkflage:
+        checkflage = runtime_response(sensor_ids)
+        if check_count < 3:
+            time.sleep(1)
+            check_count += 1
+        else:
+            break
+    time.sleep(5)
+    
+    #배기 시간 설정 전송
+    sendProcessFunction(sensor_ids, 'E', exhausttimes_set, ack_send)
+    while checkflage:
+        checkflage = runtime_response(sensor_ids)
+        if check_count < 3:
+            time.sleep(1)
+            check_count += 1
+        else:
+            break
+    time.sleep(5)
+    
     
 # Ro값 변경 요청: idx1, W(대문자),5(6|7|8),A,Ro값,,,etx)-32자리
 def ro_setting_sensor(sensor_ids):
-    ro_value = ro1,ro2,ro3,ro4
-    i = 0
+    rowscope = get_rotb()
     sample_data = +00.000
+    for rows in rowsscope:
+        ro_send = ""
+        if rows[0][0] == "MQ135": sensorname = 5
+        if rows[0][0] == "MQ136": sensorname = 6
+        if rows[0][0] == "MQ137": sensorname = 7
+        if rows[0][0] == "MQ138": sensorname = 8
+        ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids,sensorname,float(rows[0][1]),float(sample_data),float(sample_data))
 
-    for items in range(5, 9):
-        ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids[sensor_id],items,float(ro_value[i]),float(sample_data),float(sample_data))
-        app.logger.info(' Ro Send=%s', ro_send)
-        # Save RO or Calibration VALUES calibrationtb(RO 혹은 scope 선택, 센서이름(MQ135~138), RO값 또는 Calibration값)
-        save_RO_Calbration(items, float(ro_value[i]))
         ack_send = "0"
-        sendProcessFunction(sensor_ids[sensor_id], 'W', ro_send, ack_send)
-        i += 1
+        sendProcessFunction(sensor_ids, 'W', ro_send, ack_send)
+        time.sleep(1)
     
 # 기울기값 변경 요청: idx1, W(대문자),5(6|7|8),0(1|2|3),X절편,Y절편,기울기,etx)-32자리
 def scope_setting_sensor(sensor_ids):
-    scope_level_0= scop0.split(';') #135 센서의 모든것 
-    scope_level_1= scop1.split(';') #136
-    scope_level_2= scop2.split(';') #137
-    scope_level_3= scop3.split(';') #138
-    scope_list = scope_level_0,scope_level_1,scope_level_2,scope_level_3
-
-    for sensorname in range(0,4):
-        for level in range(0,4):
-            #app.logger.info('sensor name MQ13%s Value=%s Level=%s',sensorname+5, scope_list[sensorname], level)
-            scop1 = scope_list[sensorname][level].split(',')
-            #app.logger.info('scope_level 0 length all %s, 1 %s, 2 %s, 3 %s ',scope_list[level][0],scop1[0],scop1[1],scop1[2])
-            scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids[sensor_id],sensorname+5,level,float(scop1[0]),float(scop1[1]),float(scop1[2]))
-            save_Scope_Calbration(sensorname, level, float(scop1[0]), float(scop1[1]), float(scop1[2]))
-            app.logger.info('scope send data %s',scope_send)
-            ack_send = "0"
-            sendProcessFunction(sensor_ids[sensor_id], 'W', scope_send, ack_send)
+    rowscope = get_scopetb()
+    for rows in rowsscope:
+        scope_send = ""
+        if rows[0][0] == "MQ135": sensorname = 5
+        if rows[0][0] == "MQ136": sensorname = 6
+        if rows[0][0] == "MQ137": sensorname = 7
+        if rows[0][0] == "MQ138": sensorname = 8
+        scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids,sensorname,rows[0][1],float(rows[0][2]),float(rows[0][3]),float(rows[0][4]))       
+        ack_send = "0"
+        sendProcessFunction(sensor_ids, 'W', scope_send, ack_send)
+        time.sleep(1)
     
 # send_data, modes=auto(자동), sdcard(카드)
 # 서버에서 요청하면 센서에서 데이터 주고, 서버는 받았다는 결과를 전송
@@ -263,7 +302,7 @@ def create_cmdprocess_and_ticket(sensor_id, *args):
             curs.execute(str_query)
         db.commit()
         with db.cursor() as curs:
-            str_query = "INSERT INTO  cmdprocess  (SENSORID, CMD, TICKETS, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, args[0], args[1], 1, nowtime)
+            str_query = "INSERT INTO  cmdprocess  (SENSORID, CMD, TICKETS, S_FLAGE, S_TIME) VALUES({0},{1},{2},{3})".format(sensorid, args[0], args[1], 0, nowtime)
             curs.execute(str_query)
         db.commit()
     finally:
@@ -276,7 +315,7 @@ def SearchcmdProcess(sensorid, cmd):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            str_query = "SELECT r_flag FROM  cmdprocess  WHERE SID={0} AND CMD={1} AND S_FLAG={2}".format(sensorid, cmd, 0)
+            str_query = "SELECT r_flag FROM  cmdprocess  WHERE sensorid={0} AND CMD={1} AND S_FLAG={2}".format(sensorid, cmd, 0)
             curs.execute(str_query)
             rec_flag = curs.fetchall()
     finally:
@@ -335,9 +374,15 @@ if __name__ == "__main__":
                     elif sdreadflage == 1: read_request_sdcard(sensorid)
                     elif exhaustflage == 1: run_request_exhaust(sensorid)
                     elif intakeflage == 1: run_request_intake(sensorid)
-                    elif resetflage == 1: reset_request_sensor(sensorid)
-                    elif runtimeflage == 1: runtime_setting_sensor(sensorid)
-                    elif roflage == 1: ro_setting_sensor(sensorid)
-                    else scopeflage == 1: scope_setting_sensor(sensorid)
-                time.sleep(5)
+                    elif resetflage == 1: reset_request_sensor(sensorid) #수동으로 리셋을 하는 경우
+                    elif runtimeflage == 1:
+                        runtime_setting_sensor(sensorid)
+                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                    elif roflage == 1:
+                        ro_setting_sensor(sensorid)
+                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                    else scopeflage == 1:
+                        scope_setting_sensor(sensorid)
+                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                time.sleep(3)
         time.sleep(5)
