@@ -1,3 +1,4 @@
+#-*- coding:utf-8 -*-
 from datetime import datetime
 import datetime
 from app001 import app
@@ -32,9 +33,9 @@ def get_sensortb():
             if sensordatatb == None:
                 sensordatatb = [0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
     finally:
-        db.close()
         return sensordatatb
-        
+        db.close()
+   
 # ro 값 읽기
 def get_rotb():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -46,9 +47,9 @@ def get_rotb():
             #한번 호출할때 전체 row 레코드 갖고온다
             rodatatb = curs.fetchall()
     finally:
-        db.close()
         return rodatatb
-        
+        db.close()
+
 # scope 값 읽기
 def get_scopetb():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
@@ -59,9 +60,22 @@ def get_scopetb():
             curs.execute(sql)
             scopedatatb = curs.fetchall()
     finally:
-        db.close()
         return scopedatatb
-        
+        db.close()
+
+# run time 값 읽기
+def get_runtimetb():
+    db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
+    runtimetb = []
+    try:
+        with db.cursor() as curs:
+            sql = "SELECT intaketimes, fittimes, exhausttimes FROM sensorpumpruntime"
+            curs.execute(sql)
+            runtimetb = curs.fetchall()
+    finally:
+        return runtimetb
+        db.close()
+ 
 #==============================================================================================
         
 def action_config(mode, *args):
@@ -72,7 +86,7 @@ def action_config(mode, *args):
             sql = 'UPDATE sensoractiveconfig SET runflage = 1, runstopflage = 0, runcount = {0} WHERE sensorid = {1}'.format(args[1],i)
             curs.execute(sql)
             db.commit()
-     if mode == "runstop": #무한 반복 펌프 동작 중지 하면 sensoractiveconfig SET runflage = 0, runcount = 0으로 업데이터한다.
+    if mode == "runstop": #무한 반복 펌프 동작 중지 하면 sensoractiveconfig SET runflage = 0, runcount = 0으로 업데이터한다.
         for i in args[0]:
             sql = 'UPDATE sensoractiveconfig SET runflage = 0, runcount = 0, runstopflage = 1 WHERE sensorid = {0}'.format(i)
             curs.execute(sql)

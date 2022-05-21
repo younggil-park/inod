@@ -83,7 +83,13 @@ def home():
         sentb = web_dbsave.get_sensortb()
 
         msg_sensordata = 'ID:{0}, H2:{1}, H2S:{2}, NH3:{3}, Tol:{4}, CO2:{5}, VOC:{6}, CO:{7}, TH1:{8}, TH2:{9}, RH1:{10}, RH2:{11}'.format(sentb[0],sentb[1],sentb[2],sentb[3],sentb[4],sentb[5],sentb[6],sentb[7],sentb[8],sentb[9],sentb[10],sentb[11])
-
+        
+        # runningtime 테이블에서 읽어서 화면에 표출
+        runtimetb = web_dbsave.get_runtimetb()
+        intaketimes = runtimetb[0][0]
+        fittimes = runtimetb[0][1]
+        exhausttimes = runtimetb[0][2]
+        
         # RO / Scope 테이블에서 읽어서 화면에 표출
         rotb = web_dbsave.get_rotb()
         mq135_ro = rotb[0]
@@ -132,7 +138,7 @@ def home():
         ip_addr = request.environ['SERVER_NAME']
         flash(ip_addr)
         
-        return render_template('home.html', username=session['username'], logintime=session['logintime'], userip=session['userip'], myip_addr=ip_addr, msg=msg, sendata=msg_sensordata, ro1=rol1,ro2=rol2,ro3=rol3,ro4=rol4,s0=mq135_level0,s1=mq135_level1,s2=mq135_level2,s3=mq135_level3,y0=mq136_level0,y1=mq136_level1,y2=mq136_level2,y3=mq136_level3,u0=mq137_level0,u1=mq137_level1,u2=mq137_level2,u3=mq137_level3,z0=mq138_level0,z1=mq138_level1,z2=mq138_level2,z3=mq138_level3)
+        return render_template('home.html', username=session['username'], logintime=session['logintime'], userip=session['userip'], myip_addr=ip_addr, msg=msg, sendata=msg_sensordata, ro1=rol1,ro2=rol2,ro3=rol3,ro4=rol4,s0=mq135_level0,s1=mq135_level1,s2=mq135_level2,s3=mq135_level3,y0=mq136_level0,y1=mq136_level1,y2=mq136_level2,y3=mq136_level3,u0=mq137_level0,u1=mq137_level1,u2=mq137_level2,u3=mq137_level3,z0=mq138_level0,z1=mq138_level1,z2=mq138_level2,z3=mq138_level3,runtime1=intaketimes,runtime2=fittimes,runtime3=exhausttimes)
     return redirect(url_for('login'))
 
 @app.route('/logout')
@@ -195,6 +201,7 @@ def sensor_control():
     select_sensor = []
     if 'loggedin' in session:
         username=session['username']
+        msg2 = "INOD .."
         if request.method == 'POST':
             if not request.form.get('no1') and not request.form.get('no2')  and not request.form.get('no3')  and not request.form.get('no4')  and not request.form.get('no5'):
                 msg = 'Please Selected Sensor....'

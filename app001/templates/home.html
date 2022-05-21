@@ -33,11 +33,11 @@
   <label><input type="checkbox" name="no5" value="4"> 4차 센서</label>
   <!-- <label><input type="text" name="running_time" value="10" size="5" maxlength="5"> 단위(초)</label><br> -->
   <table><tr>
-  <td><label><input type="text" name="running_time1" value="10" size="5" maxlength="5"> 흡입 펌프 동작 시간 </label></td><td>흡입 초단위</td>
+  <td><label><input type="text" name="running_time1"  size="5" maxlength="5" value={{runtime1}}> 흡입 펌프 동작 시간 </label></td><td>흡입 초단위</td>
   </tr><tr>
-  <td><label><input type="text" name="running_time2" value="10" size="5" maxlength="5"> 교정 시간</label></td><td>교정 초단위</td>
+  <td><label><input type="text" name="running_time2"  size="5" maxlength="5" value={{runtime2}}> 교정 시간</label></td><td>교정 초단위</td>
   </tr><tr>
-  <td><label><input type="text" name="running_time3" value="10" size="5" maxlength="5"> 배기 폄프 동작 시간</label></td><td>배기 초단위</td>
+  <td><label><input type="text" name="running_time3"  size="5" maxlength="5" value={{runtime3}}> 배기 폄프 동작 시간</label></td><td>배기 초단위</td>
   </tr></table><br>
 {% endblock %}
 {% block content5 %}

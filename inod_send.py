@@ -1,10 +1,13 @@
+#!/usr/bin/python
+#-*- coding:utf-8 -*-
+
 from datetime import datetime
 import datetime
 import serial
-from app001 import routes_all
-from app001 import app
 import time
 import pymysql #MySQL 연결 위한 라이브러리
+import random
+import string
 
 #serialPort1 = "/dev/ttyUSB0"
 #write_ser = serial.Serial(serialPort1, baudrate=19200, timeout = 1)
@@ -28,9 +31,6 @@ ack_send = ""
 '''
 
 # 유일한 티켓을 생성하는 부분
-import random
-import string
-
 def random_string_generator(size=10, chars=string.ascii_lowercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
@@ -80,13 +80,14 @@ def get_scopetb():
         db.close()
         return scopedatatb
 
-# run time 값 읽기
+# run time 값 읽기 하나를 기준으로 처리함
 def get_pump_run_time(sensor_id):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     rundatatb = []
     try:
         with db.cursor() as curs:
-            sql = "SELECT intaketimes, fittimes, exhausttimes FROM sensorpumpruntime where sensorid = {}".format(sensor_id)
+            #sql = "SELECT intaketimes, fittimes, exhausttimes FROM sensorpumpruntime where sensorid = {}".format(sensor_id)
+            sql = "SELECT intaketimes, fittimes, exhausttimes FROM sensorpumpruntime"
             curs.execute(sql)
             rundatatb = curs.fetchall()
     finally:
@@ -173,9 +174,9 @@ def runtime_setting_sensor(sensor_ids):
     checkflage = True
     #intaketimes, fittimes, exhausttimes
     runningtimes = get_pump_run_time(sensor_ids)
-    intaketimes = '{0:05d}'.format(runningtimes[0])
-    fittimes = '{0:05d}'.format(runningtimes[1])
-    exhausttimes = '{0:05d}'.format(runningtimes[2])
+    intaketimes = '{0:05d}'.format(runningtimes[0][0])
+    fittimes = '{0:05d}'.format(runningtimes[0][1])
+    exhausttimes = '{0:05d}'.format(runningtimes[0][2])
     
     ack_send = "0"
     check_count = 0
@@ -268,30 +269,6 @@ def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     app.logger.info('1-2.Command writting %s',send_data )
     SaveLog(send_data)
 
-'''
-CREATE TABLE `sensortickets` (
-  `num` int(11) NOT NULL,
-  `sensorid` varchar(1) NOT NULL,
-  `cmd` varchar(2) NOT NULL,
-  `ack_send` varchar(15) NOT NULL,
-  `tickets` varchar(10) NOT NULL,
-  `s_flag` varchar(1) NOT NULL,
-  `s_time` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `cmdprocess` (
-  `num` int(11) NOT NULL,
-  `sensorid` varchar(1) NOT NULL,
-  `cmd` varchar(2) NOT NULL,
-  `tickets` varchar(10) NOT NULL,
-  `s_flag` varchar(1) NOT NULL,
-  `r_flag` varchar(1) DEFAULT NULL,
-  `f_flag` varchar(1) DEFAULT NULL,
-  `s_time` datetime NOT NULL,
-  `r_time` datetime DEFAULT NULL,
-  `f_time` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-'''
 # 송신 서버에서 처음 송신을 하고 S_Flage를 1로 설정한다.
 # 수신 서버에서 수신 정보를 확인해서 요청 명령임을 확인하면 R_Flage를 1 로 설정한다.
 # 송신 서버에서 R_Flage 를 확인하여 응답 정보를 보내고 F_Flage 를 1로 설정하면 명령 처리가 모두 끝난것으로 판단한다.
@@ -362,8 +339,9 @@ def tick_result_check():
     finally:
         return rowcounts, results
         db.close()
-    
+
 if __name__ == "__main__":
+    #main 프로그램 시작
     while True:
         # sensorid부터 해서 총 10개의 자료를 받는다.
         rows, datas = db_check()
@@ -396,7 +374,7 @@ if __name__ == "__main__":
                     elif roflage == 1:
                         ro_setting_sensor(sensorid)
                         reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
-                    else scopeflage == 1:
+                    elif scopeflage == 1:
                         scope_setting_sensor(sensorid)
                         reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
                 time.sleep(3)
@@ -409,3 +387,4 @@ if __name__ == "__main__":
             SaveLog(results)
             time.sleep(3)
         time.sleep(5)
+    
