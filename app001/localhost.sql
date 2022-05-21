@@ -252,6 +252,7 @@ CREATE TABLE `sensortickets` (
   `sensorid` varchar(1) NOT NULL,
   `cmd` varchar(2) NOT NULL,
   `tickets` varchar(10) NOT NULL,
+  `ack_send` varchar(10) NOT NULL,
   `s_flag` varchar(1) NOT NULL,
   `s_time` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
