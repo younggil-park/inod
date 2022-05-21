@@ -5,9 +5,9 @@ import time
 import pymysql #MySQL 연결 위한 라이브러리
 
 #센서 데이터 수신 전용 모듈
-serialPort2 = "/dev/ttyUSB1"
-read_ser = serial.Serial(serialPort2, baudrate=19200, timeout = 1)
-read_ser.flushInput()
+#serialPort2 = "/dev/ttyUSB1"
+#read_ser = serial.Serial(serialPort2, baudrate=19200, timeout = 1)
+#read_ser.flushInput()
 
 ack_send = ""
 #프로그램 전체 흐름 설명

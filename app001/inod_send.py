@@ -6,9 +6,9 @@ from app001 import app
 import time
 import pymysql #MySQL 연결 위한 라이브러리
 
-serialPort1 = "/dev/ttyUSB0"
-write_ser = serial.Serial(serialPort1, baudrate=19200, timeout = 1)
-write_ser.flushInput()
+#serialPort1 = "/dev/ttyUSB0"
+#write_ser = serial.Serial(serialPort1, baudrate=19200, timeout = 1)
+#write_ser.flushInput()
 
 ack_send = ""
 
@@ -264,7 +264,7 @@ def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     new_tickets = new_ticket_generator()
     create_cmdprocess_and_ticket(sensor_id, cmd, new_tickets, ack_send)
     # 서버에서 명령어 전송(자동 모드와 SD 카드 읽기 명령)
-    write_ser.write(send_data.encode("utf-8"))
+    #write_ser.write(send_data.encode("utf-8"))
     app.logger.info('1-2.Command writting %s',send_data )
     SaveLog(send_data)
 
@@ -404,7 +404,7 @@ if __name__ == "__main__":
         # 처리 결과를 확인해서 응답이 있는 부분은 응답을 보낸다.
         rows, results = tick_result_check()
         for i in rows:
-            write_ser.write(results.encode("utf-8"))
+            #write_ser.write(results.encode("utf-8"))
             app.logger.info('Command writting %s',results )
             SaveLog(results)
             time.sleep(3)
