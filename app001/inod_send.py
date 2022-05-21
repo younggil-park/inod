@@ -221,31 +221,35 @@ def runtime_setting_sensor(sensor_ids):
 def ro_setting_sensor(sensor_ids):
     rowscope = get_rotb()
     sample_data = +00.000
+    i = 0
     for rows in rowsscope:
         ro_send = ""
-        if rows[0][0] == "MQ135": sensorname = 5
-        if rows[0][0] == "MQ136": sensorname = 6
-        if rows[0][0] == "MQ137": sensorname = 7
-        if rows[0][0] == "MQ138": sensorname = 8
-        ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids,sensorname,float(rows[0][1]),float(sample_data),float(sample_data))
+        if rows[i][0] == "MQ135": sensorname = 5
+        if rows[i][0] == "MQ136": sensorname = 6
+        if rows[i][0] == "MQ137": sensorname = 7
+        if rows[i][0] == "MQ138": sensorname = 8
+        ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids,sensorname,float(rows[i][1]),float(sample_data),float(sample_data))
 
         ack_send = "0"
         sendProcessFunction(sensor_ids, 'W', ro_send, ack_send)
         time.sleep(1)
+        i += i
     
 # 기울기값 변경 요청: idx1, W(대문자),5(6|7|8),0(1|2|3),X절편,Y절편,기울기,etx)-32자리
 def scope_setting_sensor(sensor_ids):
     rowscope = get_scopetb()
+    i = 0
     for rows in rowsscope:
         scope_send = ""
-        if rows[0][0] == "MQ135": sensorname = 5
-        if rows[0][0] == "MQ136": sensorname = 6
-        if rows[0][0] == "MQ137": sensorname = 7
-        if rows[0][0] == "MQ138": sensorname = 8
-        scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids,sensorname,rows[0][1],float(rows[0][2]),float(rows[0][3]),float(rows[0][4]))       
+        if rows[i][0] == "MQ135": sensorname = 5
+        if rows[i][0] == "MQ136": sensorname = 6
+        if rows[i][0] == "MQ137": sensorname = 7
+        if rows[i][0] == "MQ138": sensorname = 8
+        scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids,sensorname,rows[i][1],float(rows[i][2]),float(rows[i][3]),float(rows[i][4]))       
         ack_send = "0"
         sendProcessFunction(sensor_ids, 'W', scope_send, ack_send)
         time.sleep(1)
+        i += 1
     
 # send_data, modes=auto(자동), sdcard(카드)
 # 서버에서 요청하면 센서에서 데이터 주고, 서버는 받았다는 결과를 전송
@@ -346,7 +350,18 @@ def db_check():
         request_flag = curs.fetchall()
         return rowcounts, request_flag
     db.close()
-    
+
+def tick_result_check():
+    db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
+    try:
+        with db.cursor() as curs:
+            sql = "SELECT ack_send FROM sensortickets WHERE s_flag=1".format(sensorid)
+            curs.execute(sql)
+            rowcounts = curs.rowcount()
+            results = curs.fetchall()
+    finally:
+        return rowcounts, results
+        db.close()
     
 if __name__ == "__main__":
     while True:
@@ -385,4 +400,12 @@ if __name__ == "__main__":
                         scope_setting_sensor(sensorid)
                         reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
                 time.sleep(3)
+                
+        # 처리 결과를 확인해서 응답이 있는 부분은 응답을 보낸다.
+        rows, results = tick_result_check()
+        for i in rows:
+            write_ser.write(results.encode("utf-8"))
+            app.logger.info('Command writting %s',results )
+            SaveLog(results)
+            time.sleep(3)
         time.sleep(5)
