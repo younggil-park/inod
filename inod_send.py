@@ -9,26 +9,11 @@ import pymysql #MySQL 연결 위한 라이브러리
 import random
 import string
 
-#serialPort1 = "/dev/ttyUSB0"
-#write_ser = serial.Serial(serialPort1, baudrate=19200, timeout = 1)
-#write_ser.flushInput()
+serialPort1 = "/dev/ttyUSB0"
+write_ser = serial.Serial(serialPort1, baudrate=19200, timeout = 1)
+write_ser.flushInput()
 
 ack_send = ""
-
-'''
-서버요청  명령    데이터 수신 및 응답      센서 결과에 대한 서버응답
-센싱      )     데이터 97자리          1
-로그      +     데이터 97자리          1
-로그      +      2 로그없음
-로그      +      3 SD불량
-배기      ,      2
-흡기      -      2
-값설정     W      2
-흡입시간   I      I
-교정시간   P      P
-배기시간   E      없음
-재시작     R     없음
-'''
 
 # 유일한 티켓을 생성하는 부분
 def random_string_generator(size=10, chars=string.ascii_lowercase + string.digits):
@@ -100,7 +85,7 @@ def runtime_response(sensorid):
         with db.cursor() as curs:
             sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(sensorid)
             curs.execute(sql)
-            rows = curs.rowcount()
+            rows = curs.rowcount
             if rows == 1:
                 return False
             else:
@@ -321,7 +306,7 @@ def db_check():
     curs = db.cursor()
     sql = 'SELECT  sensorid, runflage, runstopflage, sdreadflage, exhaustflage, intakeflage, resetflage, runtimeflage, roflage, scopeflage, runcount FROM sensoractiveconfig WHERE runflage = 1 or runstopflage = 1 or sdreadflage = 1 or exhaustflage = 1 or intakeflage = 1 or resetflage = 1 or runtimeflage = 1 or roflage = 1 or scopeflage = 1'
     curs.execute(sql)
-    rowcounts = curs.rowcount()
+    rowcounts = curs.rowcount
     if rowcounts == 0:
         request_flag = 0
         return rowcounts, request_flag
@@ -336,7 +321,7 @@ def tick_result_check():
         with db.cursor() as curs:
             sql = "SELECT ack_send FROM sensortickets WHERE s_flag=1".format(sensorid)
             curs.execute(sql)
-            rowcounts = curs.rowcount()
+            rowcounts = curs.rowcount
             results = curs.fetchall()
     finally:
         return rowcounts, results
