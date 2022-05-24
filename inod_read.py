@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #-*- coding:utf-8 -*-
-
+import sys
 from datetime import datetime
 import datetime
 import serial
@@ -155,4 +155,8 @@ def SaveCmdResponseData(send_cmd):
     
 if __name__ == "__main__":
     while True:
+      try:
         sensor_read_control()
+      except KeyboardInterrupt:
+        # Ctrl+C 입력시 예외 발생
+        sys.exit() #종료
