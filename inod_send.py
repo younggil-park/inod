@@ -134,12 +134,12 @@ def read_request_sdcard(sensor_ids):
 def run_request_exhaust(sensor_ids):
     sd_send = 'idx{0},,,etx'.format(sensor_ids)
     #app.logger.info('export send data %s',export_send)
-    ack_send = 'idx{0},2,etx'.format(sensor_ids)
+    ack_send = '0'
     sendProcessFunction(sensor_id, ',', sd_send, ack_send)
 
 # 서버에서 흡기 요청(idx1,-,etx)-10자리
 def run_request_intake(sensor_ids):
-    sd_send = 'idx{0},-,etx'.format(sensor_ids)
+    sd_send = '0'
     #app.logger.info('import send data %s',import_send)
     ack_send = 'idx{0},2,etx'.format(sensor_ids)
     sendProcessFunction(sensor_id, '-', sd_send, ack_send)
@@ -148,7 +148,7 @@ def run_request_intake(sensor_ids):
 def reset_request_sensor(sensor_ids):
     checktime = 0
     ro_send = 'idx{0},R,etx'.format(sensor_ids[sensor_id])
-    ack_send = 'idx{0},2,etx'.format(sensor_ids)
+    ack_send = '0'
     sendProcessFunction(sensor_ids, 'R', ro_send, ack_send)
     msg = ' Reset CMD SensorID:{0}, CMD:{1}'.format(sensor_ids, ro_send)
     app.logger.info('Command writting %s',msg )
@@ -169,7 +169,7 @@ def runtime_setting_sensor(sensor_ids):
     exhausttimes_set = 'idx{0},E,{1},etx'.format(sensor_ids, exhausttimes)
     
     #흡기 시간 설정 전송
-    ack_send = intaketimes_set
+    ack_send = '0'
     sendProcessFunction(sensor_ids, 'I', intaketimes_set, ack_send)
     while checkflage:
         checkflage = runtime_response(sensor_ids)
@@ -181,7 +181,7 @@ def runtime_setting_sensor(sensor_ids):
     time.sleep(5)
     
     #양생 시간 설정 전송
-    ack_send = fittimes_set
+    ack_send = '0'
     sendProcessFunction(sensor_ids, 'P', fittimes_set, ack_send)
     while checkflage:
         checkflage = runtime_response(sensor_ids)
@@ -193,7 +193,7 @@ def runtime_setting_sensor(sensor_ids):
     time.sleep(5)
     
     #배기 시간 설정 전송
-    ack_send = exhausttimes_set
+    ack_send = '0'
     sendProcessFunction(sensor_ids, 'E', exhausttimes_set, ack_send)
     while checkflage:
         checkflage = runtime_response(sensor_ids)
@@ -218,7 +218,7 @@ def ro_setting_sensor(sensor_ids):
         if rows[i][0] == "MQ138": sensorname = 8
         ro_send = 'idx{0},W,{1},A,{2:+07.3f},{3:+07.3f},{4:+07.3f},etx'.format(sensor_ids,sensorname,float(rows[i][1]),float(sample_data),float(sample_data))
 
-        ack_send = 'idx{0},2,etx'.format(sensor_ids)
+        ack_send = '0'
         sendProcessFunction(sensor_ids, 'W', ro_send, ack_send)
         time.sleep(1)
         i += i
@@ -234,7 +234,7 @@ def scope_setting_sensor(sensor_ids):
         if rows[i][0] == "MQ137": sensorname = 7
         if rows[i][0] == "MQ138": sensorname = 8
         scope_send = 'idx{0},W,{1},{2},{3:+07.3f},{4:+07.3f},{5:+07.3f},etx'.format(sensor_ids,sensorname,rows[i][1],float(rows[i][2]),float(rows[i][3]),float(rows[i][4]))       
-        ack_send = 'idx{0},2,etx'.format(sensor_ids)
+        ack_send = '0'
         sendProcessFunction(sensor_ids, 'W', scope_send, ack_send)
         time.sleep(1)
         i += 1
