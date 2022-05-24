@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #-*- coding:utf-8 -*-
-
+import sys
 from datetime import datetime
 import datetime
 import serial
@@ -252,7 +252,7 @@ def sendProcessFunction(sensor_id, cmd, send_data, ack_send):
     new_tickets = new_ticket_generator()
     create_cmdprocess_and_ticket(sensor_id, cmd, new_tickets, ack_send)
     # 서버에서 명령어 전송(자동 모드와 SD 카드 읽기 명령)
-    #write_ser.write(send_data.encode("utf-8"))
+    write_ser.write(send_data.encode("utf-8"))
     app.logger.info('1-2.Command writting %s',send_data )
     SaveLog(send_data)
 
@@ -330,48 +330,52 @@ def tick_result_check():
 if __name__ == "__main__":
     #main 프로그램 시작
     while True:
-        # sensorid부터 해서 총 10개의 자료를 받는다.
-        rows, datas = db_check()
-        if rows == 0:
+        try:
+            # sensorid부터 해서 총 10개의 자료를 받는다.
+            rows, datas = db_check()
+            if rows == 0:
+                time.sleep(5)
+                continue
+            else:
+                for i in range(0,rows):
+                    for actions in datas:
+                        sensorid = actions[i][0]
+                        runflage = actions[i][1]
+                        runstopflage= actions[i][2]
+                        sdreadflage = actions[i][3]
+                        exhaustflage = actions[i][4]
+                        intakeflage = actions[i][5]
+                        resetflage = actions[i][6]
+                        runtimeflage = actions[i][7]
+                        roflage = actions[i][8]
+                        scopeflage = actions[i][9]
+                        runcount = actions[i][10]
+
+                        if runflage == 1 and runcount >= 0 and runstopflage == 0 : send_request_data(sensorid)
+                        elif sdreadflage == 1: read_request_sdcard(sensorid)
+                        elif exhaustflage == 1: run_request_exhaust(sensorid)
+                        elif intakeflage == 1: run_request_intake(sensorid)
+                        elif resetflage == 1: reset_request_sensor(sensorid) #수동으로 리셋을 하는 경우
+                        elif runtimeflage == 1:
+                            runtime_setting_sensor(sensorid)
+                            reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                        elif roflage == 1:
+                            ro_setting_sensor(sensorid)
+                            reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                        elif scopeflage == 1:
+                            scope_setting_sensor(sensorid)
+                            reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
+                    time.sleep(3)
+
+                # 처리 결과를 확인해서 응답이 있는 부분은 응답을 보낸다.
+                rows, results = tick_result_check()
+                for i in rows:
+                    write_ser.write(results.encode("utf-8"))
+                    app.logger.info('Command writting %s',results )
+                    SaveLog(results)
+                    time.sleep(3)
+            except KeyboardInterrupt:
+                # Ctrl+C 입력시 예외 발생
+                sys.exit() #종료
             time.sleep(5)
-            continue
-        else:
-            for i in range(0,rows):
-                for actions in datas:
-                    sensorid = actions[i][0]
-                    runflage = actions[i][1]
-                    runstopflage= actions[i][2]
-                    sdreadflage = actions[i][3]
-                    exhaustflage = actions[i][4]
-                    intakeflage = actions[i][5]
-                    resetflage = actions[i][6]
-                    runtimeflage = actions[i][7]
-                    roflage = actions[i][8]
-                    scopeflage = actions[i][9]
-                    runcount = actions[i][10]
-                    
-                    if runflage == 1 and runcount >= 0 and runstopflage == 0 : send_request_data(sensorid)
-                    elif sdreadflage == 1: read_request_sdcard(sensorid)
-                    elif exhaustflage == 1: run_request_exhaust(sensorid)
-                    elif intakeflage == 1: run_request_intake(sensorid)
-                    elif resetflage == 1: reset_request_sensor(sensorid) #수동으로 리셋을 하는 경우
-                    elif runtimeflage == 1:
-                        runtime_setting_sensor(sensorid)
-                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
-                    elif roflage == 1:
-                        ro_setting_sensor(sensorid)
-                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
-                    elif scopeflage == 1:
-                        scope_setting_sensor(sensorid)
-                        reset_request_sensor(sensorid) #설정하면 반드시 reset를 해야 적용된다
-                time.sleep(3)
-                
-        # 처리 결과를 확인해서 응답이 있는 부분은 응답을 보낸다.
-        rows, results = tick_result_check()
-        for i in rows:
-            #write_ser.write(results.encode("utf-8"))
-            app.logger.info('Command writting %s',results )
-            SaveLog(results)
-            time.sleep(3)
-        time.sleep(5)
     
