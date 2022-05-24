@@ -8,9 +8,9 @@ import time
 import pymysql #MySQL 연결 위한 라이브러리
 
 #센서 데이터 수신 전용 모듈
-#serialPort2 = "/dev/ttyUSB1"
-#read_ser = serial.Serial(serialPort2, baudrate=19200, timeout = 1)
-#read_ser.flushInput()
+serialPort2 = "/dev/ttyUSB1"
+read_ser = serial.Serial(serialPort2, baudrate=19200, timeout = 1)
+read_ser.flushInput()
 
 ack_send = ""
 #프로그램 전체 흐름 설명
@@ -44,20 +44,6 @@ CREATE TABLE `cmdprocess` (
   `r_time` datetime DEFAULT NULL,
   `f_time` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-서버요청  명령    데이터 수신 및 응답      센서 결과에 대한 서버응답
-센싱      )     데이터 97자리          1
-로그      +     데이터 97자리          1
-로그      +      2 로그없음
-로그      +      3 SD불량
-배기      ,      2
-흡기      -      2
-값설정     W      2
-흡입시간   I      I
-교정시간   P      P
-배기시간   E      없음
-재시작     R     없음
 
 ''' 
 # 기본 데이터는 모두 10자리 응답
@@ -112,7 +98,7 @@ def cmd_ticket_compare_and_update(revPacket):
                 
             sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(id_value)
             curs.execute(sql)
-            rows = curs.rowcount()
+            rows = curs.rowcount
             if rows == 1:
                 sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flag = 1, A.r_time = {0}, B.s_flag = 1 , B.s_time = {1}  WHERE A.sensorid={2} and B.sensorid={2}".format(now(), now(), id_value)
                 curs.execute(sql)
