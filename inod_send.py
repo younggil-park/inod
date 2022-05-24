@@ -83,7 +83,7 @@ def runtime_response(sensorid):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(sensorid)
+            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flage=1 and B.s_flage=1".format(sensorid)
             curs.execute(sql)
             rows = curs.rowcount
             if rows == 1:
@@ -283,7 +283,7 @@ def SearchcmdProcess(sensorid, cmd):
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            str_query = "SELECT r_flag FROM  cmdprocess  WHERE sensorid={0} AND CMD={1} AND S_FLAG={2}".format(sensorid, cmd, 0)
+            str_query = "SELECT r_flage FROM  cmdprocess  WHERE sensorid={0} AND CMD={1} AND S_FLAGE={2}".format(sensorid, cmd, 0)
             curs.execute(str_query)
             rec_flag = curs.fetchall()
     finally:
@@ -319,7 +319,7 @@ def tick_result_check():
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
     try:
         with db.cursor() as curs:
-            sql = "SELECT ack_send FROM sensortickets WHERE s_flag=1".format(sensorid)
+            sql = "SELECT ack_send FROM sensortickets WHERE s_flage=1".format(sensorid)
             curs.execute(sql)
             rowcounts = curs.rowcount
             results = curs.fetchall()
