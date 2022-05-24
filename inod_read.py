@@ -21,31 +21,6 @@ ack_send = ""
 # 데이터 수신의 경우 반복작업에 대한 처리를 생각하여야 한다
 # 그리고 설정의 경우 반복 작업을 생각하여야 한다.
 
-'''
-CREATE TABLE `sensortickets` (
-  `num` int(11) NOT NULL,
-  `sensorid` varchar(1) NOT NULL,
-  `cmd` varchar(2) NOT NULL,
-  `ack_send` varchar(15) NOT NULL,
-  `tickets` varchar(10) NOT NULL,
-  `s_flag` varchar(1) NOT NULL,
-  `s_time` datetime NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE `cmdprocess` (
-  `num` int(11) NOT NULL,
-  `sensorid` varchar(1) NOT NULL,
-  `cmd` varchar(2) NOT NULL,
-  `tickets` varchar(10) NOT NULL,
-  `s_flag` varchar(1) NOT NULL,
-  `r_flag` varchar(1) DEFAULT NULL,
-  `f_flag` varchar(1) DEFAULT NULL,
-  `s_time` datetime NOT NULL,
-  `r_time` datetime DEFAULT NULL,
-  `f_time` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-''' 
 # 기본 데이터는 모두 10자리 응답
 # 데이터는 97자리 응답
 def sensor_read_control():
