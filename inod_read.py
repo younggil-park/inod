@@ -71,16 +71,16 @@ def cmd_ticket_compare_and_update(revPacket):
             else:
                 id_value = idVal[0]
                 
-            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flag=1 and B.s_flag=1".format(id_value)
+            sql = "SELECT * FROM cmdprocess A INNER JOIN  sensortickets B ON A.tickets = B.tickets WHERE A.sensorid={0} and B.sensorid={0} and A.s_flage=1 and B.s_flage=1".format(id_value)
             curs.execute(sql)
             rows = curs.rowcount
             if rows == 1:
                 cmd_check = curs.fetchall()
                 if cmd_check[2] == "+" and data_value[1] == "2" and data_value[1] == "3":
-                  sql = "UPDATE sensortickets SET ack_send = '0' WHERE sensorid={0} and s_flag = 0".format(id_value)
+                  sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET B.ack_send = '0' WHERE A.sensorid={0} and B.sensorid={0} and A.s_flage = 0 and B.s_flage = 0".format(id_value)
                   curs.execute(sql)
                   db.commit()
-                sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flag = 1, A.r_time = {0}, B.s_flag = 1 , B.s_time = {1}  WHERE A.sensorid={2} and B.sensorid={2}".format(now(), now(), id_value)
+                sql = "UPDATE cmdprocess A INNER JOIN  sensortickets B ON (A.tickets = B.tickets) SET A.r_flage = 1, A.r_time = {0}, B.s_flage = 1 , B.s_time = {1}  WHERE A.sensorid={2} and B.sensorid={2}".format(now(), now(), id_value)
                 curs.execute(sql)
                 db.commit()
                 
