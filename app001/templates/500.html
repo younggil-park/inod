@@ -1,0 +1,17 @@
+<html>
+<title> error 500</title>
+<body>
+	<div>
+		<h3>Page not found. (504 error)</h3>
+	</div>
+	{% with messages = get_flashed_messages() %} 
+	{% if messages %} 
+	<ul> {% for messages in messages %} 
+	<li>{{messages }}</li>
+	{% endfor %}
+	</ul>
+	{% endif %}
+	{% endwith %}
+	<a href="{{ url_for('/') }}">main</a>
+</body>
+</html>
