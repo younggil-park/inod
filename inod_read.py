@@ -51,8 +51,8 @@ def sensor_read_control():
     while True:
         try:
             result1 = read_ser.readline().decode('utf-8') 
-            msg = "read checking... ".format(result1)
-            logger.info('sensor_read_control func: %s',msg )
+            #msg = "read checking... ".format(result1)
+            #logger.info('sensor_read_control func: %s',msg )
             if result1 != '':
                 result2.append(result1)
                 strResult = "".join(result2)
@@ -70,6 +70,12 @@ def sensor_read_control():
                 elif len(strResult) >= 97:
                     org_data = strResult
                     strResult = strResult.split(',')
+                    if len(strResult) == 15 and strResult[0][:3] == 'idx' and strResult[12][0:3] == 'etx' :
+                        del strResult[13: ]
+                        strResult[12] = strResult[12][0:3]
+                        msg = "data  {0} ".format(strResult)
+                        logger.info('Sensor Data Resultmsg: %s',msg )
+                        read_data_check(strResult,  org_data)
                     if len(strResult) == 13 and strResult[0][:3] == 'idx' and strResult[12] == 'etx' :
                         msg = "data  {0} ".format(strResult)
                         logger.info('Sensor Data Resultmsg: %s',msg )

@@ -55,49 +55,48 @@ def degree_count(sensorid):
 def check_pumptime():
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
     db = pymysql.connect(host='localhost', user='root', password = 'atek21.com',db='sensordb')
-    try:
-        with db.cursor() as curs:
-            sql = "SELECT sensorid, runtimecheck, runcount, countmode FROM sensoractiveconfig WHERE runflage = 3 and runtimecheck = 0"
-            curs.execute(sql)
-            rows = curs.rowcount
-            result = list(curs.fetchall())
+
+    with db.cursor() as curs:
+        sql = "SELECT sensorid, runtimecheck, runcount, countmode FROM sensoractiveconfig WHERE runflage = 3 and runtimecheck = 0"
+        curs.execute(sql)
+        rows = curs.rowcount
+        result = list(curs.fetchall())
+        
+
+        if rows == 1: # 하나의 센서만 돌고 있는 경우
             msg = "result={0}".format(result)
             logger.info('get_cmdprocess: %s',msg )
-
-            if rows == 1: # 하나의 센서만 돌고 있는 경우
-                if result[0][3] == 1: # 무한 모드
-                    sensorid = result[0][0]
-                    sql = "UPDATE sensoractiveconfig A,  SET runflage = 1 WHERE sensorid={0}".format(sensorid)
-                if result[0][2] > 0 and result[0][3] == 0: # 한정 모드, 카운터가 0 아닌 경우 카운터 삭감
-                    sensorid = result[0][0]
+            if result[0][3] == 1: # 무한 모드
+                sensorid = result[0][0]
+                sql = "UPDATE sensoractiveconfig SET runflage = 1 WHERE sensorid={0}".format(sensorid)
+            if result[0][2] > 0 and result[0][3] == 0: # 한정 모드, 카운터가 0 아닌 경우 카운터 삭감
+                sensorid = result[0][0]
+                sql = "UPDATE sensoractiveconfig SET runflage = 1, runcount = runcount -1 WHERE runcount > 0 and sensorid={0}".format(sensorid)
+            if result[0][2] == 0 and result[0][3] == 0: # 한정 모드, 카운터가 0인 경우 초기화 하도록
+                sensorid = result[0][0]
+                sql = "UPDATE sensoractiveconfig SET runflage = 0 WHERE runcount = 0 and sensorid={0}".format(sensorid)
+            curs.execute(sql)
+            db.commit()
+            db.close()
+            finish_update(sensorid)
+        if rows > 1: # 여러개의 센서
+            msg = "result={0}".format(result)
+            logger.info('get_cmdprocess: %s',msg )
+            for i in range(0, rows):
+                if result[i][3] == 1: # 무한모드
+                    sensorid = result[i][0]
+                    sql = "UPDATE sensoractiveconfig SET runflage = 1 WHERE sensorid={0}".format(sensorid)
+                if result[i][2] > 0 and result[i][3] == 0: # 한정 모드, 카운터가 0 아닌 경우 카운터 삭감
+                    sensorid = result[i][0]
                     sql = "UPDATE sensoractiveconfig SET runflage = 1, runcount = runcount -1 WHERE runcount > 0 and sensorid={0}".format(sensorid)
-                if result[0][2] == 0 and result[0][3] == 0: # 한정 모드, 카운터가 0인 경우 초기화 하도록
-                    sensorid = result[0][0]
+                if result[i][2] == 0 and result[i][3] == 0: # 한정 모드, 카운터가 0인 경우 초기화 하도록
+                    sensorid = result[i][0]
                     sql = "UPDATE sensoractiveconfig SET runflage = 0 WHERE runcount = 0 and sensorid={0}".format(sensorid)
                 curs.execute(sql)
                 db.commit()
                 db.close()
                 finish_update(sensorid)
-            if rows > 1: # 여러개의 센서
-                for i in range(0, rows):
-                    if result[i][3] == 1: # 무한모드
-                        sensorid = result[i][0]
-                        sql = "UPDATE sensoractiveconfig SET runflage = 1 WHERE sensorid={0}".format(sensorid)
-                    if result[i][2] > 0 and result[i][3] == 0: # 한정 모드, 카운터가 0 아닌 경우 카운터 삭감
-                        sensorid = result[i][0]
-                        sql = "UPDATE sensoractiveconfig SET runflage = 1, runcount = runcount -1 WHERE runcount > 0 and sensorid={0}".format(sensorid)
-                    if result[i][2] == 0 and result[i][3] == 0: # 한정 모드, 카운터가 0인 경우 초기화 하도록
-                        sensorid = result[i][0]
-                        sql = "UPDATE sensoractiveconfig SET runflage = 0 WHERE runcount = 0 and sensorid={0}".format(sensorid)
-                    curs.execute(sql)
-                    db.commit()
-                    db.close()
-                    finish_update(sensorid)
-    finally:
-        msg = "Pump running time finished.."
-        logger.info('Steps: %s',msg )
         
-
 #최종 완료했다는 프래그
 def finish_update(sensorid):
     nowtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
